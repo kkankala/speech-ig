@@ -14,4 +14,6 @@ string azureKey = configuration.GetSection("kk-ig-ai:apiKey")?.Value ?? throw ne
 string azureLocation = "eastus";
 var speechConfig = SpeechConfig.FromSubscription(azureKey, azureLocation);
 
-// await RecognizeOnce.FromSoundFile(speechConfig);
+var wavFile = new FromWavFileInput();
+await wavFile.RecognizeOnce(speechConfig);
+
