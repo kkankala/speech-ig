@@ -3,6 +3,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.CognitiveServices.Speech;
 using Microsoft.CognitiveServices.Speech.Audio;
 
+namespace Speech_ig;
+
 public class ContinuousSpeech
 {
     static async Task Test()
