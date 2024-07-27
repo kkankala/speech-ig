@@ -15,5 +15,5 @@ string azureLocation = "eastus";
 var speechConfig = SpeechConfig.FromSubscription(azureKey, azureLocation);
 
 var wavFile = new FromWavFileInput();
-await wavFile.RecognizeOnce(speechConfig);
+await wavFile.RecognizeContinuous(speechConfig);
 
