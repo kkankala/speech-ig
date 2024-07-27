@@ -7,21 +7,8 @@ namespace Speech_ig;
 
 public class RecognizeOnce
 {
-    public static async Task Test()
-    {
-        var builder = new ConfigurationBuilder();
-        builder.AddUserSecrets<Program>();
-
-        var configuration = builder.Build();
-
-        string azureKey = configuration.GetSection("kk-ig-ai:apiKey")?.Value ?? throw new NullReferenceException("missing app config");
-        string azureLocation = "eastus";
-        var speechConfig = SpeechConfig.FromSubscription(azureKey, azureLocation);
-        await FromSoundFile(speechConfig);
-        await FromMic(speechConfig);
-    }
-
-    async static Task FromMic(SpeechConfig speechConfig)
+    //TODO: Microphone not working
+    public async static Task FromMic(SpeechConfig speechConfig)
     {
         using var audioConfig = AudioConfig.FromDefaultMicrophoneInput();
         using var speechRecognizer = new SpeechRecognizer(speechConfig, audioConfig);
@@ -30,7 +17,7 @@ public class RecognizeOnce
         Console.WriteLine($"RECOGNIZED: Text={result.Text}");
     }
 
-    async static Task FromSoundFile(SpeechConfig speechConfig)
+    public async static Task FromSoundFile(SpeechConfig speechConfig)
     {
         string textFile = "Shakespeare.txt";
         string waveFile = "Shakespeare.wav";
