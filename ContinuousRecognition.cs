@@ -6,6 +6,8 @@ using Microsoft.CognitiveServices.Speech;
 using Microsoft.CognitiveServices.Speech.Audio;
 using Azure;
 using Azure.AI.Language.Conversations;
+using Azure.Core;
+using System.Text.Json;
 
 public class ContinuousRecognition
 {
@@ -75,23 +77,69 @@ public class ContinuousRecognition
 
     private static async Task AnalyzeTextWithCLU(string text)
     {
+        var projectName = "";
+        var deploymentName = "";
         var client = new ConversationAnalysisClient(new Uri(CluEndpoint), new AzureKeyCredential(CluKey));
-
-        var response = await client.AnalyzeConversationAsync(
-            "YourProjectName", // Replace with your CLU project name
-            "YourDeploymentName", // Replace with your CLU deployment name
-            new TextConversationAnalysisInput
-            {
-                Text = text,
-                Language = "en"
-            }
-        );
-
-        Console.WriteLine($"Intent: {response.Value.Prediction.TopIntent}");
-        Console.WriteLine("Entities:");
-        foreach (var entity in response.Value.Prediction.Entities)
+        var data = new
         {
-            Console.WriteLine($"  - {entity.Category}: {entity.Text} (Confidence: {entity.ConfidenceScore})");
+            analysisInput = new
+            {
+                conversationItem = new
+                {
+                    text = text,
+                    id = "1",
+                    participantId = "1",
+                }
+            },
+            parameters = new
+            {
+                projectName,
+                deploymentName,
+                // Use Utf16CodeUnit for strings in .NET.
+                stringIndexType = "Utf16CodeUnit",
+            },
+            kind = "Conversation",
+        };
+
+        Response response = client.AnalyzeConversation(RequestContent.Create(data));
+
+        using JsonDocument result = JsonDocument.Parse(response.ContentStream);
+        JsonElement conversationalTaskResult = result.RootElement;
+        JsonElement conversationPrediction = conversationalTaskResult.GetProperty("result").GetProperty("prediction");
+
+        Console.WriteLine($"Top intent: {conversationPrediction.GetProperty("topIntent").GetString()}");
+
+        Console.WriteLine("Intents:");
+        foreach (JsonElement intent in conversationPrediction.GetProperty("intents").EnumerateArray())
+        {
+            Console.WriteLine($"Category: {intent.GetProperty("category").GetString()}");
+            Console.WriteLine($"Confidence: {intent.GetProperty("confidenceScore").GetSingle()}");
+            Console.WriteLine();
+        }
+
+        Console.WriteLine("Entities:");
+        foreach (JsonElement entity in conversationPrediction.GetProperty("entities").EnumerateArray())
+        {
+            Console.WriteLine($"Category: {entity.GetProperty("category").GetString()}");
+            Console.WriteLine($"Text: {entity.GetProperty("text").GetString()}");
+            Console.WriteLine($"Offset: {entity.GetProperty("offset").GetInt32()}");
+            Console.WriteLine($"Length: {entity.GetProperty("length").GetInt32()}");
+            Console.WriteLine($"Confidence: {entity.GetProperty("confidenceScore").GetSingle()}");
+            Console.WriteLine();
+
+            if (entity.TryGetProperty("resolutions", out JsonElement resolutions))
+            {
+                foreach (JsonElement resolution in resolutions.EnumerateArray())
+                {
+                    if (resolution.GetProperty("resolutionKind").GetString() == "DateTimeResolution")
+                    {
+                        Console.WriteLine($"Datetime Sub Kind: {resolution.GetProperty("dateTimeSubKind").GetString()}");
+                        Console.WriteLine($"Timex: {resolution.GetProperty("timex").GetString()}");
+                        Console.WriteLine($"Value: {resolution.GetProperty("value").GetString()}");
+                        Console.WriteLine();
+                    }
+                }
+            }
         }
     }
 }
